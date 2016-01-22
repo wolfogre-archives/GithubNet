@@ -11,21 +11,20 @@ public class DebugCrawler {
 	public static void main(String args[]){
 
 		Crawler crawler = new Crawler();
-		/*
+
 		try {
+			System.out.print("Password for database:");
 			crawler.connectDatabase("com.mysql.jdbc.Driver", "jdbc:mysql://120.27.99.15:3306/github_net", "wolf", new Scanner(System.in).nextLine());
 		} catch (SQLException | ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 			e.printStackTrace();
+			return;
 		}
-		*/
-		String[] result;
-		for(int i = 0; i < 10; ++i)
-			result = crawler.getFollowers("PresidentObamaBot");
 
-		//for (String str : result) {
-			//System.out.println(str);
-		//}
-		//System.out.println(result.length);
+		try {
+			crawler.startCrawl();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 
 	}
 }
