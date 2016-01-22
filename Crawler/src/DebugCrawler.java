@@ -16,5 +16,7 @@ public class DebugCrawler {
 		} catch (SQLException | ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 			e.printStackTrace();
 		}
+		String[] result = crawler.getFollowers("wolfogre");
+		System.out.print(result[0]);
 	}
 }
