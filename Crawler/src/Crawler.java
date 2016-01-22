@@ -13,6 +13,27 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Created by Jason Song(wolfogre@outlook.com) on 01/20/2016.
  */
+
+/*
+use github_net;
+create table user(
+	id bigint auto_increment,
+	name char(39) not null,
+	done boolean not null,
+	primary key (id),
+	constraint AK_NoRepeatName unique (name)
+);
+create index idx on user(name);
+
+create table connection(
+	followfrom bigint not null,
+	followto bigint not null,
+	primary key (followfrom, followto),
+	foreign key (followfrom) references user(id),
+	foreign key (followto) references user(id),
+	constraint CN_NoFollowSelf check (followfrom <> followto)
+);
+ */
 public class Crawler {
 
 	private Connection connection;
