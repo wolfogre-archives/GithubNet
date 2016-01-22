@@ -13,7 +13,6 @@ public class Crawler {
 
 	public void connectDatabase(String jdbcDriver, String dbUrl, String dbUsername, String dbPassword) throws SQLException, ClassNotFoundException, IllegalAccessException, InstantiationException {
 		Driver driver = (Driver) (Class.forName(jdbcDriver).newInstance());
-		Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
 		Connection connection = DriverManager.getConnection(dbUrl,dbUsername,dbPassword);
 	}
 }
