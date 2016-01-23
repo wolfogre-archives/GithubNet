@@ -57,57 +57,57 @@ public class Crawler {
 		while(rsNotDone.next()){
 			String username = rsNotDone.getString("name");
 			int userId = rsNotDone.getInt("id");
-			int page = 1;
-			while(true){
-				String[] followings = getFollowings(username, page++);
-				if(followings.length == 0)
+			int followingPage = 1;
+			while(true) {
+				String[] followings = getFollowings(username, followingPage++);
+				if (followings.length == 0)
 					break;
-				else{
-					for(String following : followings){
+				else {
+					for (String following : followings) {
 						ResultSet rs = statementQuery.executeQuery("select * from user where name = '" + following + "'");
-						if(!rs.next())
-						{
-							statementUpdate.executeUpdate("insert into user(name, done) values ('" + following +"', false)");
+						if (!rs.next()) {
+							statementUpdate.executeUpdate("insert into user(name, done) values ('" + following + "', false)");
 							rs = statementQuery.executeQuery("select * from user where name = '" + following + "'");
 							rs.next();
 							System.out.println("New user: ID " + rs.getInt("id") + ", name " + following);
 						}
-						try{
-							statementUpdate.executeUpdate("insert into connection (followfrom, followto) values (" + userId +"," + rs.getInt("id") + ")");
+						try {
+							statementUpdate.executeUpdate("insert into connection (followfrom, followto) values (" + userId + "," + rs.getInt("id") + ")");
 							System.out.println("New connection: " + userId + " " + username + " -> " + rs.getInt("id") + " " + following);
-						} catch (SQLException e){
-							System.out.println("Fail to insert into connetion (followfrom, followto) values (" + userId +"," + rs.getInt("id") + ")");
+						} catch (SQLException e) {
+							System.out.println("Fail to insert into connetion (followfrom, followto) values (" + userId + "," + rs.getInt("id") + ")");
 							System.out.println(e.getMessage());
 						}
 					}
 				}
-
-				page = 1;
-				while(true){
-					String[] followers = getFollowers(username, page++);
-					if(followers.length == 0)
-						break;
-					else{
-						for(String follower : followers){
-							ResultSet rs = statementQuery.executeQuery("select * from user where name = '" + follower + "'");
-							if(!rs.next())
-							{
-								statementUpdate.executeUpdate("insert into user(name, done) values ('" + follower +"', false)");
-								rs = statementQuery.executeQuery("select * from user where name = '" + follower + "'");
-								rs.next();
-								System.out.println("New user: ID " + rs.getInt("id") + ", name " + rs.getString("name"));
-							}
+			}
+			int followerPage = 1;
+			while(true){
+				String[] followers = getFollowers(username, followerPage++);
+				if(followers.length == 0)
+					break;
+				else{
+					for(String follower : followers){
+						ResultSet rs = statementQuery.executeQuery("select * from user where name = '" + follower + "'");
+						if(!rs.next())
+						{
+							statementUpdate.executeUpdate("insert into user(name, done) values ('" + follower +"', false)");
+							rs = statementQuery.executeQuery("select * from user where name = '" + follower + "'");
+							rs.next();
+							System.out.println("New user: ID " + rs.getInt("id") + ", name " + rs.getString("name"));
 						}
 					}
 				}
-				statementUpdate.executeUpdate("update user set done = true where id = " + userId);
-
-				if(!rsNotDone.next()){
-					rsNotDone = statementNotDone.executeQuery("select * from user where done = false");
-					continue;
-				}
-				rsNotDone.previous();
 			}
+
+			statementUpdate.executeUpdate("update user set done = true where id = " + userId);
+
+			if(!rsNotDone.next()){
+				rsNotDone = statementNotDone.executeQuery("select * from user where done = false");
+				continue;
+			}
+			rsNotDone.previous();
+
 		}
 	}
 
