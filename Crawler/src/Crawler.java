@@ -114,6 +114,8 @@ public class Crawler {
 	String[] getFollowers(String username, int page){
 		List followers = new LinkedList<>();
 		while(true){
+			if(page > 100)
+				break;
 			try {
 				System.out.println("Connect to " + "https://github.com/" + username + "/followers?page=" + page);
 				Document document = Jsoup.connect("https://github.com/" + username + "/followers?page=" + page).get();
@@ -145,6 +147,8 @@ public class Crawler {
 	String[] getFollowings(String username, int page){
 		List followings = new LinkedList<>();
 		while(true){
+			if(page > 100)
+				break;
 			try {
 				System.out.println("Connect to " + "https://github.com/" + username + "/following?page=" + page);
 				Document document = Jsoup.connect("https://github.com/" + username + "/following?page=" + page).get();
