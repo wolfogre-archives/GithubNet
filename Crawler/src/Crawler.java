@@ -22,6 +22,9 @@ create table user(
 	id int auto_increment,
 	name char(39) not null,
 	done boolean not null,
+	next_following_page int not null,
+	next_follower_page int not null,
+	update_time datetime not null,
 	primary key (id),
 	constraint AK_NoRepeatName unique (name)
 );
@@ -36,7 +39,7 @@ create table connection(
 	constraint CN_NoFollowSelf check (followfrom <> followto)
 );
 
-insert into user(name, done) values ('wolfogre', false);
+insert into user(name, done, next_following_page, next_follower_page, update_time) values ('wolfogre', false, 1, 1, NOW());
  */
 
 public class Crawler {
@@ -50,65 +53,98 @@ public class Crawler {
 
 	public void startCrawl() throws SQLException {
 		Statement statementNotDone = connection.createStatement();
-		Statement statementQuery = connection.createStatement();
 		Statement statementUpdate = connection.createStatement();
+
 		ResultSet rsNotDone = statementNotDone.executeQuery("select * from user where done = false");
 
 		while(rsNotDone.next()){
-			String username = rsNotDone.getString("name");
-			int userId = rsNotDone.getInt("id");
-			int followingPage = 1;
-			while(true) {
-				String[] followings = getFollowings(username, followingPage++);
-				if (followings.length == 0)
-					break;
-				else {
-					for (String following : followings) {
-						ResultSet rs = statementQuery.executeQuery("select * from user where name = '" + following + "'");
-						if (!rs.next()) {
-							statementUpdate.executeUpdate("insert into user(name, done) values ('" + following + "', false)");
-							rs = statementQuery.executeQuery("select * from user where name = '" + following + "'");
-							rs.next();
-							System.out.println("New user: ID " + rs.getInt("id") + ", name " + following);
-						}
-						try {
-							statementUpdate.executeUpdate("insert into connection (followfrom, followto) values (" + userId + "," + rs.getInt("id") + ")");
-							System.out.println("New connection: " + userId + " " + username + " -> " + rs.getInt("id") + " " + following);
-						} catch (SQLException e) {
-							System.out.println("Fail to insert into connetion (followfrom, followto) values (" + userId + "," + rs.getInt("id") + ")");
-							System.out.println(e.getMessage());
-						}
-					}
-				}
+			if(crawlConnection(rsNotDone, ConnectionType.FOLLOWING) && crawlConnection(rsNotDone, ConnectionType.FOLLOWER)){
+				statementUpdate.executeUpdate("update user set done = true where id = " + rsNotDone.getInt("id"));
+				statementUpdate.executeUpdate("update user set update_time= NOW() where id = " + rsNotDone.getInt("id"));
 			}
-			int followerPage = 1;
-			while(true){
-				String[] followers = getFollowers(username, followerPage++);
-				if(followers.length == 0)
-					break;
-				else{
-					for(String follower : followers){
-						ResultSet rs = statementQuery.executeQuery("select * from user where name = '" + follower + "'");
-						if(!rs.next())
-						{
-							statementUpdate.executeUpdate("insert into user(name, done) values ('" + follower +"', false)");
-							rs = statementQuery.executeQuery("select * from user where name = '" + follower + "'");
-							rs.next();
-							System.out.println("New user: ID " + rs.getInt("id") + ", name " + rs.getString("name"));
-						}
-					}
-				}
-			}
-
-			statementUpdate.executeUpdate("update user set done = true where id = " + userId);
 
 			if(!rsNotDone.next()){
 				rsNotDone = statementNotDone.executeQuery("select * from user where done = false");
 				continue;
 			}
 			rsNotDone.previous();
-
 		}
+	}
+
+	enum ConnectionType{FOLLOWING, FOLLOWER};
+	boolean crawlConnection(ResultSet rsNotDone, ConnectionType connectionType) throws SQLException {
+		Statement statementQuery = connection.createStatement();
+		Statement statementUpdate = connection.createStatement();
+		int page = 1;
+		switch(connectionType){
+			case FOLLOWING:
+				page = rsNotDone.getInt("next_following_page");
+				break;
+			case FOLLOWER:
+				page = rsNotDone.getInt("next_follower_page");
+				break;
+		}
+		int maxPage = page + 35;
+		while(page < maxPage){
+			String[] users = new String[0];
+			switch(connectionType){
+				case FOLLOWING:
+					users = getFollowings(rsNotDone.getString("name"), page);
+					break;
+				case FOLLOWER:
+					users = getFollowers(rsNotDone.getString("name"), page);
+					break;
+			}
+			if (users.length == 0)
+			{
+				switch(connectionType){
+					case FOLLOWING:
+						statementUpdate.executeUpdate("update user set next_following_page = " + page + " where id = " + rsNotDone.getInt("id"));
+						statementUpdate.executeUpdate("update user set update_time= NOW() where id = " + rsNotDone.getInt("id"));
+						break;
+					case FOLLOWER:
+						statementUpdate.executeUpdate("update user set next_follower_page = " + page + " where id = " + rsNotDone.getInt("id"));
+						statementUpdate.executeUpdate("update user set update_time= NOW() where id = " + rsNotDone.getInt("id"));
+						break;
+				}
+				return true;
+			}
+			for (String user : users) {
+				ResultSet rs = statementQuery.executeQuery("select * from user where name = '" + user + "'");
+				if (!rs.next()) {
+					statementUpdate.executeUpdate("insert into user(name, done, next_following_page, next_follower_page, update_time) values ('" + user + "', false, 1, 1, NOW())");
+					rs = statementQuery.executeQuery("select * from user where name = '" + user + "'");
+					rs.next();
+					System.out.println("New user: ID " + rs.getInt("id") + ", name " + rs.getString("name"));
+				}
+				switch(connectionType){
+					case FOLLOWING:
+						try {
+							statementUpdate.executeUpdate("insert into connection (followfrom, followto) values (" + rsNotDone.getInt("id") + "," + rs.getInt("id") + ")");
+							System.out.println("New connection: " + rsNotDone.getInt("id") + " " + rsNotDone.getString("name") + " -> " + rs.getInt("id") + " " + rs.getString("name"));
+						} catch (SQLException e) {
+							System.out.println("Fail to insert into connetion (followfrom, followto) values (" + rsNotDone.getInt("id") + "," + rs.getInt("id") + ")");
+							System.out.println(e.getMessage());
+						}
+						break;
+					case FOLLOWER:
+						//Do nothing
+						break;
+				}
+			}
+			++page;
+		}
+		switch(connectionType){
+			case FOLLOWING:
+				statementUpdate.executeUpdate("update user set next_following_page = " + page + " where id = " + rsNotDone.getInt("id"));
+				statementUpdate.executeUpdate("update user set update_time= NOW() where id = " + rsNotDone.getInt("id"));
+				break;
+			case FOLLOWER:
+				statementUpdate.executeUpdate("update user set next_follower_page = " + page + " where id = " + rsNotDone.getInt("id"));
+				statementUpdate.executeUpdate("update user set update_time= NOW() where id = " + rsNotDone.getInt("id"));
+				break;
+		}
+		return false;
 	}
 
 	String[] getFollowers(String username, int page){
@@ -129,7 +165,7 @@ public class Crawler {
 				e.printStackTrace();
 				try {
 					System.out.println("Waiting...");
-					Thread.sleep(60000 * 2);
+					Thread.sleep(1000);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
@@ -162,7 +198,7 @@ public class Crawler {
 				e.printStackTrace();
 				try {
 					System.out.println("Waiting...");
-					Thread.sleep(60000 * 2);
+					Thread.sleep(1000);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
