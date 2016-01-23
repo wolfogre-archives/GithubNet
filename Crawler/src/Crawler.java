@@ -77,7 +77,7 @@ public class Crawler {
 							System.out.println("New connection: " + userId + " " + username + " -> " + rs.getInt("id") + " " + following);
 						} catch (SQLException e){
 							System.out.println("Fail to insert into connetion (followfrom, followto) values (" + userId +"," + rs.getInt("id") + ")");
-							e.printStackTrace();
+							System.out.println(e.getMessage());
 						}
 					}
 				}
@@ -115,6 +115,7 @@ public class Crawler {
 		List followers = new LinkedList<>();
 		while(true){
 			try {
+				System.out.println("Connect to " + "https://github.com/" + username + "/followers?page=" + page);
 				Document document = Jsoup.connect("https://github.com/" + username + "/followers?page=" + page).get();
 				Elements links = document.select("h3[class=follow-list-name]");
 				for (Element link : links) {
@@ -125,6 +126,7 @@ public class Crawler {
 			} catch (IOException e) {
 				e.printStackTrace();
 				try {
+					System.out.println("Waiting...");
 					Thread.sleep(60000 * 2);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -144,6 +146,7 @@ public class Crawler {
 		List followings = new LinkedList<>();
 		while(true){
 			try {
+				System.out.println("Connect to " + "https://github.com/" + username + "/following?page=" + page);
 				Document document = Jsoup.connect("https://github.com/" + username + "/following?page=" + page).get();
 				Elements links = document.select("h3[class=follow-list-name]");
 				for (Element link : links) {
@@ -154,6 +157,7 @@ public class Crawler {
 			} catch (IOException e) {
 				e.printStackTrace();
 				try {
+					System.out.println("Waiting...");
 					Thread.sleep(60000 * 2);
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
