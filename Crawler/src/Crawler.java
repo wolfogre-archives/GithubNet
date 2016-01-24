@@ -1,3 +1,4 @@
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -86,15 +87,7 @@ public class Crawler {
 		}
 		int maxPage = page + 35;
 		while(page < maxPage){
-			String[] users = new String[0];
-			switch(connectionType){
-				case FOLLOWING:
-					users = getFollowings(rsNotDone.getString("name"), page);
-					break;
-				case FOLLOWER:
-					users = getFollowers(rsNotDone.getString("name"), page);
-					break;
-			}
+			String[] users = getUsers(rsNotDone.getString("name"), page, connectionType);
 			if (users.length == 0)
 			{
 				switch(connectionType){
@@ -147,68 +140,58 @@ public class Crawler {
 		return false;
 	}
 
-	String[] getFollowers(String username, int page){
-		List followers = new LinkedList<>();
+	String[] getUsers(String username, int page, ConnectionType connectionType){
+		List users = new LinkedList<>();
 		while(true){
 			if(page > 100)
 				break;
 			try {
-				System.out.println("Connect to " + "https://github.com/" + username + "/followers?page=" + page);
-				Document document = Jsoup.connect("https://github.com/" + username + "/followers?page=" + page).get();
-				Elements links = document.select("h3[class=follow-list-name]");
-				for (Element link : links) {
-					Document doc = Jsoup.parse(link.html());
-					Element name = doc.select("a[href]").first();
-					followers.add(name.attr("href"));
+				Document document = new Document("");
+				switch (connectionType){
+					case FOLLOWING:
+						System.out.println("Connect to " + "https://github.com/" + username + "/following?page=" + page);
+						document = Jsoup.connect("https://github.com/" + username + "/following?page=" + page).get();
+						break;
+					case FOLLOWER:
+						System.out.println("Connect to " + "https://github.com/" + username + "/followers?page=" + page);
+						document = Jsoup.connect("https://github.com/" + username + "/followers?page=" + page).get();
+						break;
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
-				try {
-					System.out.println("Waiting...");
-					Thread.sleep(1000);
-				} catch (InterruptedException e1) {
-					e1.printStackTrace();
-				}
-				continue;
-			}
-			break;
-		}
-		String[] result = new String[followers.size()];
-		for(int i = 0; i < followers.size(); ++i){
-			result[i] = ((String)followers.get(i)).replace("/", "");
-		}
-		return result;
-	}
 
-	String[] getFollowings(String username, int page){
-		List followings = new LinkedList<>();
-		while(true){
-			if(page > 100)
-				break;
-			try {
-				System.out.println("Connect to " + "https://github.com/" + username + "/following?page=" + page);
-				Document document = Jsoup.connect("https://github.com/" + username + "/following?page=" + page).get();
 				Elements links = document.select("h3[class=follow-list-name]");
 				for (Element link : links) {
 					Document doc = Jsoup.parse(link.html());
 					Element name = doc.select("a[href]").first();
-					followings.add(name.attr("href"));
+					users.add(name.attr("href"));
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
+			}catch (HttpStatusException hse){
+				System.out.println(hse.getMessage() + ", " + hse.getStatusCode() + " at " + hse.getUrl());
+				if(hse.getStatusCode() == 429){
+					try {
+						System.out.println("Waiting 60 s...");
+						Thread.sleep(60 * 1000);
+						continue;
+					} catch (InterruptedException ie) {
+						ie.printStackTrace();
+					}
+				}
+				if(hse.getStatusCode() == 404)
+					break;
 				try {
-					System.out.println("Waiting...");
+					System.out.println("Waiting 1 s...");
 					Thread.sleep(1000);
-				} catch (InterruptedException e1) {
-					e1.printStackTrace();
+					continue;
+				} catch (InterruptedException ie) {
+					ie.printStackTrace();
 				}
-				continue;
+			}catch (IOException e) {
+				e.printStackTrace();
 			}
 			break;
 		}
-		String[] result = new String[followings.size()];
-		for(int i = 0; i < followings.size(); ++i){
-			result[i] = ((String)followings.get(i)).replace("/", "");
+		String[] result = new String[users.size()];
+		for(int i = 0; i < users.size(); ++i){
+			result[i] = ((String)users.get(i)).replace("/", "");
 		}
 		return result;
 	}

@@ -11,19 +11,10 @@ public class DebugCrawler {
 	public static void main(String args[]){
 
 		Crawler crawler = new Crawler();
-
-		try {
-			System.out.print("Password for database:");
-			crawler.connectDatabase("com.mysql.jdbc.Driver", "jdbc:mysql://120.27.99.15:3306/github_net", "wolf", new Scanner(System.in).nextLine());
-		} catch (SQLException | ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-			e.printStackTrace();
-			return;
-		}
-
-		try {
-			crawler.startCrawl();
-		} catch (SQLException e) {
-			e.printStackTrace();
+		int time = 0;
+		while(true){
+			crawler.getUsers("wolfogre_not_exist", 1, Crawler.ConnectionType.FOLLOWER);
+			System.out.println("   " + ++time);
 		}
 
 	}
