@@ -20,7 +20,7 @@ drop table connection;
 drop table user;
 create table user(
 	id int auto_increment,
-	name char(39) not null,
+	name char(40) not null,
 	done boolean not null,
 	next_following_page int not null,
 	next_follower_page int not null,
