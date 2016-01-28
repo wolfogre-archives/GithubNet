@@ -56,7 +56,7 @@ public class Crawler {
 		Statement statementNotDone = connection.createStatement();
 		Statement statementUpdate = connection.createStatement();
 
-		ResultSet rsNotDone = statementNotDone.executeQuery("select * from user where done = false");
+		ResultSet rsNotDone = statementNotDone.executeQuery("select * from user where done = false limit 100");
 
 		while(rsNotDone.next()){
 			if(crawlConnection(rsNotDone, ConnectionType.FOLLOWING) && crawlConnection(rsNotDone, ConnectionType.FOLLOWER)){
@@ -65,7 +65,7 @@ public class Crawler {
 			}
 
 			if(!rsNotDone.next()){
-				rsNotDone = statementNotDone.executeQuery("select * from user where done = false");
+				rsNotDone = statementNotDone.executeQuery("select * from user where done = false limit 100");
 				continue;
 			}
 			rsNotDone.previous();
